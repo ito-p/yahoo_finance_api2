@@ -1,7 +1,5 @@
 import datetime
-import pprint
 import requests
-import yaml
 from yahoo_finance_api2.exceptions import YahooFinanceError
 
 PERIOD_TYPE_DAY = 'day'
@@ -16,15 +14,15 @@ FREQUENCY_TYPE_DAY = 'd'
 FREQUENCY_TYPE_WEEK = 'wk'
 FREQUENCY_TYPE_MONTH = 'mo'
 
+
 class Share(object):
 
     def __init__(self, symbol):
         self.symbol = symbol
 
-
-    def get_historical(self, period_type, period, frequency_type, frequency):
+    def get_historical(self, period_type, period, frequency_type, frequency, proxies=None):
         data = self._download_symbol_data(period_type, period,
-                                          frequency_type, frequency)
+                                          frequency_type, frequency, proxies=proxies)
 
         valid_frequency_types = [
             FREQUENCY_TYPE_MINUTE, FREQUENCY_TYPE_HOUR, FREQUENCY_TYPE_DAY,
@@ -56,7 +54,6 @@ class Share(object):
 
         return return_data
 
-
     def _set_time_frame(self, period_type, period):
         now = datetime.datetime.now()
 
@@ -79,9 +76,8 @@ class Share(object):
 
         return int(start_time.timestamp()), int(end_time.timestamp())
 
-
     def _download_symbol_data(self, period_type, period,
-                              frequency_type, frequency):
+                              frequency_type, frequency, proxies=None):
         start_time, end_time = self._set_time_frame(period_type, period)
         url = (
             'https://query1.finance.yahoo.com/v8/finance/chart/{0}?symbol={0}'
@@ -91,7 +87,7 @@ class Share(object):
         ).format(self.symbol, start_time, end_time,
                  self._frequency_str(frequency_type, frequency))
 
-        resp_json = requests.get(url).json()
+        resp_json = requests.get(url, proxies=proxies).json()
 
         if self._is_yf_response_error(resp_json):
             self._raise_yf_response_error(resp_json)
@@ -101,10 +97,8 @@ class Share(object):
 
         return data_json
 
-
     def _is_yf_response_error(self, resp):
         return resp['chart']['error'] is not None
-
 
     def _raise_yf_response_error(self, resp):
         raise YahooFinanceError(
